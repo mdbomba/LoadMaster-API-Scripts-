@@ -65,7 +65,7 @@ url_encode() {
   python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
 }
 
-extract_first_number() {
+extract_id_from_response() {
   local input="$1"
   local n
   n=$(printf '%s' "$input" | grep -Eo '[0-9]+' | head -n1 || true)
@@ -173,7 +173,7 @@ VS_RESPONSE=$(api_call "addvs" \
   "vstype=$(url_encode "$VS_TYPE_VALUE")")
 echo "$VS_RESPONSE"
 
-VS_ID=$(extract_first_number "$VS_RESPONSE")
+VS_ID=$(extract_id_from_response "$VS_RESPONSE")
 VS_ID=$(resolve_id "$VS_ID" "Unable to auto-detect VS ID. Enter VS ID: ")
 
 printf 'Applying parent VS options...\n'
@@ -197,7 +197,7 @@ SUBVS1_RESPONSE=$(api_call "addsubvs" \
   "id=$(url_encode "$VS_ID")" \
   "name=$(url_encode "$SUBVS1_NAME")")
 echo "$SUBVS1_RESPONSE"
-SUBVS1_ID=$(extract_first_number "$SUBVS1_RESPONSE")
+SUBVS1_ID=$(extract_id_from_response "$SUBVS1_RESPONSE")
 SUBVS1_ID=$(resolve_id "$SUBVS1_ID" "Unable to auto-detect SubVS #1 ID. Enter SubVS #1 ID: ")
 
 printf 'Creating SubVS #2...\n'
@@ -205,7 +205,7 @@ SUBVS2_RESPONSE=$(api_call "addsubvs" \
   "id=$(url_encode "$VS_ID")" \
   "name=$(url_encode "$SUBVS2_NAME")")
 echo "$SUBVS2_RESPONSE"
-SUBVS2_ID=$(extract_first_number "$SUBVS2_RESPONSE")
+SUBVS2_ID=$(extract_id_from_response "$SUBVS2_RESPONSE")
 SUBVS2_ID=$(resolve_id "$SUBVS2_ID" "Unable to auto-detect SubVS #2 ID. Enter SubVS #2 ID: ")
 
 printf 'Applying SubVS options...\n'
