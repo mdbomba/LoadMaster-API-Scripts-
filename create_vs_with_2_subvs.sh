@@ -4,6 +4,11 @@ set -euo pipefail
 CONTENT_RULE_HEADER="Host"
 CONTENT_RULE_ACTION="Forward To"
 
+if (( BASH_VERSINFO[0] < 4 )); then
+  echo "This script requires Bash 4.0 or newer." >&2
+  exit 1
+fi
+
 require_command() {
   local cmd="$1"
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -65,7 +70,8 @@ prompt_yes_no() {
 }
 
 url_encode() {
-  python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
+  python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1" \
+    || { echo "URL encoding failed." >&2; exit 1; }
 }
 
 extract_id_from_response() {
@@ -79,7 +85,7 @@ api_call() {
   local endpoint="$1"
   shift
   local query
-  query=$(IFS='&'; echo "$*")
+  query=$(IFS='&'; printf '%s\n' "$*")
 
   local url="https://${LM_HOST}/access/${endpoint}"
   if [[ -n "$query" ]]; then
@@ -104,6 +110,14 @@ resolve_id() {
     return 0
   fi
   prompt_required "$prompt"
+}
+
+configure_subvs_features() {
+  local subvs_id="$1"
+  api_call "modifysubvs" \
+    "id=$(url_encode "$subvs_id")" \
+    "waf=$(url_encode "$ENABLE_WAF")" \
+    "esp=$(url_encode "$ENABLE_ESP")" >/dev/null
 }
 
 echo "LoadMaster Virtual Service + 2 SubVS automation"
@@ -212,14 +226,8 @@ SUBVS2_ID=$(extract_id_from_response "$SUBVS2_RESPONSE")
 SUBVS2_ID=$(resolve_id "$SUBVS2_ID" "Unable to auto-detect SubVS #2 ID. Enter SubVS #2 ID: ")
 
 printf 'Applying SubVS options...\n'
-api_call "modifysubvs" \
-  "id=$(url_encode "$SUBVS1_ID")" \
-  "waf=$(url_encode "$ENABLE_WAF")" \
-  "esp=$(url_encode "$ENABLE_ESP")" >/dev/null
-api_call "modifysubvs" \
-  "id=$(url_encode "$SUBVS2_ID")" \
-  "waf=$(url_encode "$ENABLE_WAF")" \
-  "esp=$(url_encode "$ENABLE_ESP")" >/dev/null
+configure_subvs_features "$SUBVS1_ID"
+configure_subvs_features "$SUBVS2_ID"
 
 echo "Creating and assigning host-header content rules..."
 RULE1_RESPONSE=$(api_call "addrule" \
