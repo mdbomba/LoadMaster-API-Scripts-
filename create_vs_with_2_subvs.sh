@@ -223,9 +223,9 @@ RULE1_RESPONSE=$(api_call "addrule" \
   "vs=$(url_encode "$VS_ID")" \
   "prot=$(url_encode "$VS_PROTOCOL")" \
   "name=$(url_encode "$SUBVS1_RULE")" \
-  "header=Host" \
+  "header=$(url_encode "Host")" \
   "match=$(url_encode "$SUBVS1_HOST")" \
-  "action=Forward To" \
+  "action=$(url_encode "Forward To")" \
   "subvsid=$(url_encode "$SUBVS1_ID")")
 echo "$RULE1_RESPONSE"
 
@@ -233,9 +233,9 @@ RULE2_RESPONSE=$(api_call "addrule" \
   "vs=$(url_encode "$VS_ID")" \
   "prot=$(url_encode "$VS_PROTOCOL")" \
   "name=$(url_encode "$SUBVS2_RULE")" \
-  "header=Host" \
+  "header=$(url_encode "Host")" \
   "match=$(url_encode "$SUBVS2_HOST")" \
-  "action=Forward To" \
+  "action=$(url_encode "Forward To")" \
   "subvsid=$(url_encode "$SUBVS2_ID")")
 echo "$RULE2_RESPONSE"
 
