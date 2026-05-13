@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+require_command() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Required command not found: $cmd" >&2
+    exit 1
+  fi
+}
+
 trim() {
   local s="$1"
   s="${s#"${s%%[![:space:]]*}"}"
@@ -75,10 +83,13 @@ api_call() {
     url="${url}?${query}"
   fi
 
+  local curl_cfg
+  curl_cfg=$(printf 'user = "%s:%s"\nurl = "%s"\n' "$LM_USER" "$LM_PASS" "$url")
+
   if [[ "$SKIP_TLS_VERIFY" == "1" ]]; then
-    curl -ksS --fail -u "${LM_USER}:${LM_PASS}" "$url"
+    curl -ksS --fail --config - <<<"$curl_cfg"
   else
-    curl -sS --fail -u "${LM_USER}:${LM_PASS}" "$url"
+    curl -sS --fail --config - <<<"$curl_cfg"
   fi
 }
 
@@ -94,6 +105,9 @@ resolve_id() {
 
 echo "LoadMaster Virtual Service + 2 SubVS automation"
 echo
+
+require_command "curl"
+require_command "python3"
 
 LM_HOST=$(prompt_required "LoadMaster host/IP: ")
 LM_USER=$(prompt_required "API username: ")
@@ -120,6 +134,11 @@ while true; do
     *) echo "Invalid choice." ;;
   esac
 done
+
+if [[ "$VS_TYPE_OPTION" == "3" ]]; then
+  echo "L4 does not support host-header content rules required by this workflow."
+  exit 1
+fi
 
 SSL_ACCEL=$(prompt_yes_no "Enable SSL acceleration? [y/N]: " "n")
 SSL_REENCRYPT=$(prompt_yes_no "Enable SSL re-encryption? [y/N]: " "n")
@@ -202,7 +221,7 @@ api_call "modifysubvs" \
 echo "Creating and assigning host-header content rules..."
 RULE1_RESPONSE=$(api_call "addrule" \
   "vs=$(url_encode "$VS_ID")" \
-  "prot=http" \
+  "prot=$(url_encode "$VS_PROTOCOL")" \
   "name=$(url_encode "$SUBVS1_RULE")" \
   "header=Host" \
   "match=$(url_encode "$SUBVS1_HOST")" \
@@ -212,7 +231,7 @@ echo "$RULE1_RESPONSE"
 
 RULE2_RESPONSE=$(api_call "addrule" \
   "vs=$(url_encode "$VS_ID")" \
-  "prot=http" \
+  "prot=$(url_encode "$VS_PROTOCOL")" \
   "name=$(url_encode "$SUBVS2_RULE")" \
   "header=Host" \
   "match=$(url_encode "$SUBVS2_HOST")" \
