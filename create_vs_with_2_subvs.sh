@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+CONTENT_RULE_HEADER="Host"
+CONTENT_RULE_ACTION="Forward To"
+
 require_command() {
   local cmd="$1"
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -223,9 +226,9 @@ RULE1_RESPONSE=$(api_call "addrule" \
   "vs=$(url_encode "$VS_ID")" \
   "prot=$(url_encode "$VS_PROTOCOL")" \
   "name=$(url_encode "$SUBVS1_RULE")" \
-  "header=$(url_encode "Host")" \
+  "header=$(url_encode "$CONTENT_RULE_HEADER")" \
   "match=$(url_encode "$SUBVS1_HOST")" \
-  "action=$(url_encode "Forward To")" \
+  "action=$(url_encode "$CONTENT_RULE_ACTION")" \
   "subvsid=$(url_encode "$SUBVS1_ID")")
 echo "$RULE1_RESPONSE"
 
@@ -233,9 +236,9 @@ RULE2_RESPONSE=$(api_call "addrule" \
   "vs=$(url_encode "$VS_ID")" \
   "prot=$(url_encode "$VS_PROTOCOL")" \
   "name=$(url_encode "$SUBVS2_RULE")" \
-  "header=$(url_encode "Host")" \
+  "header=$(url_encode "$CONTENT_RULE_HEADER")" \
   "match=$(url_encode "$SUBVS2_HOST")" \
-  "action=$(url_encode "Forward To")" \
+  "action=$(url_encode "$CONTENT_RULE_ACTION")" \
   "subvsid=$(url_encode "$SUBVS2_ID")")
 echo "$RULE2_RESPONSE"
 
