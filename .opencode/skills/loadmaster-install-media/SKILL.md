@@ -7,34 +7,42 @@ description: Use when the user asks to deploy, install, import, locate, or selec
 
 Use this inventory for KVM/libvirt deployment requests. The files are QCOW2
 images with a 16 GiB virtual disk. Do not modify these source images; create
-a separate QCOW2 overlay or copy for each VM.
+a full copy for each VM. Do not use qcow2 backing files or overlays.
 
 ## Required deployment order
 
 For every new LoadMaster VLM, generate the management certificate before
-creating a QCOW2 overlay or libvirt domain. Collect the VM name, management
-FQDN, short hostname, management IP address, and certificate output directory
-first. The certificate must include the FQDN, short hostname, and management
-IP as subject alternative names.
+creating the VM. Collect the VM name, management FQDN, short hostname,
+management IP address, data IP address, and certificate password first. The
+certificate must include the FQDN, short hostname, and both IP addresses as
+subject alternative names.
 
-Run the repository generator through sudo:
+Use the existing certificate generator; do not add another generator to this
+repository. Run it as a regular user from `/home/mbomba/certs`; it invokes sudo
+itself only to access the CA private key:
 
 ```bash
-sudo /home/mbomba/repos/LoadMaster-API-Scripts-/scripts/generate-loadmaster-cert.sh \
-  --name <vm-name> \
-  --output-dir /home/mbomba/certs/loadmaster/<vm-name> \
-  --dns <management-fqdn> \
-  --dns <short-hostname> \
-  --ip <management-ip>
+cd /home/mbomba/certs
+bash ./gen-crt-and-key.sh
 ```
 
-The generator creates root-protected CA-signed PEM artifacts and fails if the
-output directory already exists. Do not create the VM when certificate
-generation fails. After VM provisioning, activation, and network setup,
-import `server.key`, `server.crt`, and `intermediate-chain.crt` from the
-generated output directory into the LoadMaster, assign the certificate to its
-management WUI/API, and verify the resulting TLS certificate fingerprint
-against `manifest.txt`.
+The script prompts for certificate details. Use the VM name as the file prefix,
+the management FQDN as CN, the short hostname as CN2, the management IP as IP1,
+and the data-network IP as IP2. Choose a strong temporary PFX/archive password;
+do not reuse an account password. The script prints this password to the
+terminal, so do not capture or share its output. It creates the key, CSR,
+certificate, intermediate/root CA certificates, PFX, and ZIP archive in
+`/home/mbomba/certs`. Protect the generated private key and archives, and remove
+temporary PFX/ZIP material after the certificate has been installed and
+verified.
+
+Do not create the VM if certificate generation fails. After provisioning,
+activation, and network setup, upload the generated private key, leaf
+certificate, and intermediate chain using the LoadMaster APIv2 `addcert`
+workflow. Assign the certificate to the management WUI/API. Verify all DNS/IP
+SANs and the presented fingerprint; follow
+`/home/chef/repos/LoadMaster/loadmaster-documents/TEST-LOADMASTER-RUNBOOK.md`
+for the validated upload and TLS verification steps on this host.
 
 | Product and license | Version | Source image |
 | --- | --- | --- |
